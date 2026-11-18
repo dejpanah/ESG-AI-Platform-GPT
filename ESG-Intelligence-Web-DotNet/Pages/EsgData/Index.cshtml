@@ -1,0 +1,119 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.EsgData.IndexModel
+@{
+    ViewData["Title"] = "داده ESG";
+}
+<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+    <div>
+        <h1>ورود و همگام‌سازی داده ESG</h1>
+        <p class="muted">
+            متصل به <code>/api/v1/esg/tables/*</code> و درگاه دستگاه‌ها <code>POST /api/ingest/device</code>
+            (Workspace: <code>@Model.WorkspaceId</code>)
+        </p>
+    </div>
+    <form method="post" asp-page-handler="SyncRag">
+        <input type="hidden" name="table" value="@Model.SelectedTable" />
+        <button type="submit" class="btn">Embed &amp; Sync to RAG</button>
+    </form>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert">@Model.Error</div>
+}
+
+<div class="grid two">
+    <section class="card">
+        <h2>جداول (@Model.Tables.Count)</h2>
+        <ul class="list">
+            @foreach (var t in Model.Tables)
+            {
+                <li>
+                    <a asp-page="/EsgData/Index" asp-route-table="@t.Name"
+                       class="@(Model.SelectedTable == t.Name ? "active" : null)">
+                        <strong>@t.Name</strong>
+                        <span class="badge">@t.Kind</span>
+                    </a>
+                </li>
+            }
+        </ul>
+        @if (Model.Tables.Count == 0)
+        {
+            <p class="muted">جدولی دریافت نشد. اتصال backend را بررسی کنید.</p>
+        }
+    </section>
+
+    <section class="card">
+        @if (string.IsNullOrEmpty(Model.SelectedTable))
+        {
+            <p class="muted">یک جدول از فهرست انتخاب کنید.</p>
+        }
+        else
+        {
+            <h2>@Model.SelectedTable <span class="badge">@Model.TableKind</span></h2>
+            <p class="muted">@Model.Total ردیف</p>
+
+            <h3>افزودن رکورد</h3>
+            <form method="post" asp-page-handler="Create" class="form">
+                <input type="hidden" name="FormTable" value="@Model.SelectedTable" />
+                @foreach (var field in Model.WritableFields)
+                {
+                    var req = Model.RequiredFields.Contains(field);
+                    <label>
+                        @field @(req ? "*" : "")
+                        <input name="FormFields[@field]"
+                               value="@(field == "workspace_id" ? Model.WorkspaceId : "")"
+                               placeholder="@field" />
+                    </label>
+                }
+                <button type="submit">ذخیره</button>
+            </form>
+
+            <h3 style="margin-top:1.5rem">ردیف‌های اخیر</h3>
+            @if (Model.Rows.Count == 0)
+            {
+                <p class="muted">داده‌ای نیست.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            @{
+                                var cols = Model.Rows[0].Keys.Take(8).ToList();
+                            }
+                            @foreach (var c in cols)
+                            {
+                                <th>@c</th>
+                            }
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                @foreach (var c in cols)
+                                {
+                                    <td>@(row.ContainsKey(c) ? row[c].ToString() : "")</td>
+                                }
+                                <td>
+                                    @if (row.ContainsKey("id") && row["id"].TryGetInt64(out var rid))
+                                    {
+                                        <form method="post" asp-page-handler="Delete" style="display:inline">
+                                            <input type="hidden" name="table" value="@Model.SelectedTable" />
+                                            <input type="hidden" name="id" value="@rid" />
+                                            <button type="submit" class="link danger">حذف</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </section>
+</div>

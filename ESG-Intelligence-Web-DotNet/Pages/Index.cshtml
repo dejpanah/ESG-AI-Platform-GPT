@@ -1,0 +1,12 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.IndexModel
+@{ ViewData["Title"] = "خانه"; }
+<h1>موتور RAG</h1>
+@if (Model.Error!=null){<div class="alert">@Model.Error</div>}
+<div class="card">
+<p>وضعیت: @(Model.Health?.Ok==true?"OK":"DOWN")</p>
+<p>اسناد: @(Model.Health?.Documents ?? 0) — Chunks: @(Model.Health?.Chunks ?? 0)</p>
+<p>DB: @(Model.Health?.Database) — Vector: @(Model.Health?.VectorBackend)</p>
+<p><a class="btn" asp-page="/Chat/Index">گفتگو</a>
+<a class="btn" asp-page="/Documents/Index">اسناد</a></p>
+</div>

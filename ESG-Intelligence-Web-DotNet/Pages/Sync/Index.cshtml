@@ -1,0 +1,37 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.Sync.IndexModel
+@{ ViewData["Title"] = "همگام‌سازی / صف"; }
+@if (Model.Error != null) { <div class="alert">@Model.Error</div> }
+<div class="card">
+  <form method="post" asp-page-handler="Sync" style="display:inline"><button class="btn" type="submit">Sync documents</button></form>
+  <form method="post" asp-page-handler="Index" style="display:inline"><button class="btn" type="submit">Re-index corpus</button></form>
+</div>
+<div class="card">
+  <h2>افزودن مخزن Git</h2>
+  <form method="post" asp-page-handler="Git">
+    <label>URL</label><input asp-for="GitUrl" required />
+    <label>Branch</label><input asp-for="Branch" />
+    <button class="btn" type="submit">Clone & ingest</button>
+  </form>
+</div>
+<div class="card">
+  <h2>صف کار (@Model.Jobs.Count)</h2>
+  <table>
+    <thead><tr><th>Job</th><th>سند</th><th>وضعیت</th><th>پیشرفت</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var j in Model.Jobs) {
+      <tr>
+        <td><code>@j.Id</code></td>
+        <td>@(j.DocumentName ?? j.DocumentId)</td>
+        <td>@j.Status / @j.Stage</td>
+        <td>@j.Progress.ToString("0%")</td>
+        <td>
+          @if (j.Status is "queued" or "running" or "pending") {
+            <form method="post" asp-page-handler="Cancel"><input type="hidden" name="id" value="@j.Id"/><button type="submit">لغو</button></form>
+          }
+        </td>
+      </tr>
+    }
+    </tbody>
+  </table>
+</div>

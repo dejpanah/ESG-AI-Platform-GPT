@@ -1,0 +1,23 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.Evaluations.IndexModel
+@{ ViewData["Title"] = "ارزیابی"; }
+@if(Model.Error!=null){<div class="alert">@Model.Error</div>}
+<div class="card">
+<form method="post" asp-page-handler="Add">
+<label>سؤال طلایی</label><textarea asp-for="Question" required></textarea>
+<label>سند مورد انتظار (برای Python &amp; Node RAG)</label>
+<select asp-for="ExpectedDocumentId">
+  <option value="">-- انتخاب سند (اختیاری) --</option>
+  @foreach (var d in Model.Documents)
+  {
+    <option value="@d.Id">@d.Filename (@d.Id)</option>
+  }
+</select>
+<label>پاسخ مورد انتظار (اختیاری)</label><textarea asp-for="ExpectedAnswer"></textarea>
+<button class="btn" type="submit">افزودن</button>
+</form>
+</div>
+<div class="card"><h2>Golden set (@Model.Items.Count)</h2>
+<table><thead><tr><th>سؤال</th><th>سند / پاسخ مورد انتظار</th></tr></thead>
+<tbody>@foreach(var g in Model.Items){<tr><td>@g.Question</td><td>@(g.ExpectedAnswer ?? g.ExpectedDocumentId ?? g.ExpectedChunkId ?? "—")</td></tr>}</tbody>
+</table></div>

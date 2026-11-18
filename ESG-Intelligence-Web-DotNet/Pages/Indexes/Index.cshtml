@@ -1,0 +1,22 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.Indexes.IndexModel
+@{ ViewData["Title"] = "ایندکس‌ها"; }
+@if(Model.Error!=null){<div class="alert">@Model.Error</div>}
+<form method="post" asp-page-handler="Create"><button class="btn" type="submit">ایندکس جدید</button></form>
+<div class="card"><table>
+<thead><tr><th>ID</th><th>State</th><th>Docs</th><th>Chunks</th><th>عملیات</th></tr></thead>
+<tbody>
+@foreach(var ix in Model.Indexes){
+<tr>
+<td><code>@ix.Id</code></td><td>@ix.State</td><td>@ix.Documents</td><td>@ix.Chunks</td>
+<td>
+@foreach(var a in new[]{"build","validate","evaluate","activate","rollback"}){
+<form method="post" asp-page-handler="Action" style="display:inline">
+<input type="hidden" name="id" value="@ix.Id"/><input type="hidden" name="action" value="@a"/>
+<button type="submit">@a</button>
+</form>
+}
+</td>
+</tr>
+}
+</tbody></table></div>

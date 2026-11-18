@@ -1,0 +1,64 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.Reports.IndexModel
+@{ ViewData["Title"] = "گزارش ESG"; }
+<h1>تولید و مدیریت گزارش‌های ESG</h1>
+<p class="muted">از metrics Postgres + بازیابی اسناد RAG + تجمیع گزارش‌ها</p>
+@if (!string.IsNullOrEmpty(Model.Error)) { <div class="alert">@Model.Error</div> }
+
+<div class="grid two">
+    <form method="post" class="form card">
+        <h2>تولید گزارش جدید</h2>
+        <label>عنوان <input asp-for="Title" /></label>
+        <label>نوع
+            <select asp-for="ReportType">
+                <option value="esg_periodic">دوره‌ای</option>
+                <option value="esg_environmental">محیط‌زیست</option>
+                <option value="esg_social">اجتماعی</option>
+                <option value="esg_governance">حاکمیتی</option>
+                <option value="esg_audit">ممیزی</option>
+                <option value="esg_custom">سفارشی</option>
+            </select>
+        </label>
+        <label>از تاریخ <input type="date" asp-for="FromDate" /></label>
+        <label>تا تاریخ <input type="date" asp-for="ToDate" /></label>
+        <label>دستورالعمل <textarea asp-for="Instructions" rows="3"></textarea></label>
+        <button type="submit" class="btn">تولید گزارش</button>
+    </form>
+
+    <section class="card">
+        <h2>گزارش‌های ذخیره‌شده (@Model.SavedReports.Count)</h2>
+        @if (Model.SavedReports.Count == 0)
+        {
+            <p class="muted">گزارشی ذخیره نشده است.</p>
+        }
+        else
+        {
+            <form method="post" asp-page-handler="Aggregate">
+                <ul class="list">
+                    @foreach (var r in Model.SavedReports)
+                    {
+                        <li style="display:flex;align-items:center;gap:.5rem">
+                            <input type="checkbox" name="SelectedReportIds" value="@r.Id" />
+                            <a asp-page="/Reports/Index" asp-route-id="@r.Id" style="flex:1">
+                                <strong>@r.Title</strong>
+                                <span class="badge">@r.ReportType</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+                <div style="margin-top:.75rem;display:flex;gap:.5rem">
+                    <input asp-for="AggregateTitle" placeholder="عنوان گزارش تجمیعی" />
+                    <button type="submit" class="btn">تجمیع انتخاب‌شده‌ها</button>
+                </div>
+            </form>
+        }
+    </section>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.GeneratedBody))
+{
+    <section class="card" style="margin-top:1rem">
+        <h2>خروجی گزارش</h2>
+        <pre style="white-space:pre-wrap;direction:auto">@Model.GeneratedBody</pre>
+    </section>
+}

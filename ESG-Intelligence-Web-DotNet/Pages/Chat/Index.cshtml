@@ -1,0 +1,35 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.Chat.IndexModel
+@{ ViewData["Title"] = "گفتگو"; }
+<div class="card">
+<form method="post">
+<label>سؤال</label>
+<textarea asp-for="Question"></textarea>
+<label>TopK</label>
+<input asp-for="TopK" type="number"/>
+<label style="display:flex;align-items:center;gap:.5rem;margin:.75rem 0;cursor:pointer">
+  <input asp-for="RequireCitations" type="checkbox" />
+  <span>پاسخ فقط با استناد <small style="opacity:.7">(حوزه‌های حساس — بدون حدس، فقط شواهد)</small></span>
+</label>
+<button class="btn" type="submit">ارسال</button>
+</form>
+@if(Model.Error!=null){<div class="alert">@Model.Error</div>}
+@if(Model.Result!=null){
+  <h3>پاسخ (اعتماد @Model.Result.Confidence)</h3>
+  <pre style="white-space:pre-wrap">@Model.Result.Answer</pre>
+  <h4>استنادها</h4>
+  @foreach(var c in Model.Result.Citations){<div class="card">@c.Filename — @c.Excerpt</div>}
+  @if(!string.IsNullOrEmpty(Model.Result.TraceId)){
+    <form method="post" asp-page-handler="Feedback" style="margin-top:.75rem;display:inline">
+      <input type="hidden" name="traceId" value="@Model.Result.TraceId" />
+      <input type="hidden" name="rating" value="1" />
+      <button class="btn" type="submit">👍 مفید</button>
+    </form>
+    <form method="post" asp-page-handler="Feedback" style="display:inline">
+      <input type="hidden" name="traceId" value="@Model.Result.TraceId" />
+      <input type="hidden" name="rating" value="-1" />
+      <button class="btn" type="submit">👎 ضعیف</button>
+    </form>
+  }
+}
+</div>

@@ -1,0 +1,16 @@
+services:
+  dotnet-web:
+    build: .
+    ports:
+      - "${DOTNET_WEB_PORT:-5180}:5180"
+    environment:
+      RagApi__BaseUrl: "${RAG_API_BASE_URL:-http://backend:8000/}"
+      ASPNETCORE_ENVIRONMENT: Production
+    networks:
+      - knowledgeos
+    restart: unless-stopped
+
+networks:
+  knowledgeos:
+    name: ${KNOWLEDGEOS_NETWORK:-python-rag_default}
+    external: true

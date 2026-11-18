@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>@ViewData["Title"] · ESG Intelligence .NET</title>
+<link rel="stylesheet" href="~/css/site.css"/></head>
+<body><div class="shell">
+<aside class="sidebar">
+<strong>ESG Intelligence .NET</strong>
+<nav class="nav" style="margin-top:1rem">
+<a asp-page="/Index">خانه</a>
+<a asp-page="/Chat/Index">گفتگو</a>
+<a asp-page="/Documents/Index">اسناد</a>
+<a asp-page="/EsgData/Index">داده ESG</a>
+<a asp-page="/Reports/Index">گزارش ESG</a>
+<a asp-page="/Indexes/Index">ایندکس</a>
+<a asp-page="/Models/Index">مدل‌ها</a>
+<a asp-page="/Storage/Index">ذخیره</a>
+<a asp-page="/Activity/Index">رویداد</a>
+<a asp-page="/Evaluations/Index">ارزیابی</a>
+<a asp-page="/Settings/Index">تنظیمات</a>
+</nav></aside>
+<div class="content">
+@if (TempData["Error"] is string e){<div class="alert">@e</div>}
+@if (TempData["Success"] is string s){<div class="alert" style="background:#14301f">@s</div>}
+@RenderBody()
+</div></div></body></html>

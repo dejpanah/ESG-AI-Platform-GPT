@@ -1,0 +1,45 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.Documents.IndexModel
+@{ ViewData["Title"] = "اسناد"; }
+@if (Model.Error != null) { <div class="alert">@Model.Error</div> }
+<div class="card">
+  <h2>آپلود</h2>
+  <form method="post" asp-page-handler="Upload" enctype="multipart/form-data">
+    <input type="file" name="file" required />
+    <button class="btn" type="submit">ارسال</button>
+  </form>
+  <form method="post" asp-page-handler="AddPath" style="margin-top:.75rem">
+    <label>افزودن از مسیر سرور</label>
+    <input name="path" placeholder="/data/docs" />
+    <button class="btn" type="submit">افزودن مسیر</button>
+  </form>
+  <form method="post" asp-page-handler="Sync" style="margin-top:.5rem;display:inline">
+    <button class="btn" type="submit">Sync همه</button>
+  </form>
+  <form method="post" asp-page-handler="Reindex" style="display:inline">
+    <button class="btn" type="submit">Reindex همه</button>
+  </form>
+</div>
+@if (Model.Changes.Count > 0) {
+<div class="card"><h2>تغییرات اخیر</h2>
+<table><thead><tr><th>فایل</th><th>مسیر</th></tr></thead>
+<tbody>@foreach (var c in Model.Changes){<tr><td>@c.Filename</td><td>@c.Path</td></tr>}</tbody></table></div>
+}
+<div class="card"><h2>اسناد (@Model.Documents.Count)</h2>
+<table>
+<thead><tr><th>نام</th><th>وضعیت</th><th>Chunks</th><th>عملیات</th></tr></thead>
+<tbody>
+@foreach (var d in Model.Documents) {
+<tr>
+  <td>@d.Filename<br/><small>@d.Id</small></td>
+  <td>@d.Status @d.Stage</td>
+  <td>@d.Chunks</td>
+  <td>
+    <form method="post" asp-page-handler="Sync" style="display:inline"><input type="hidden" name="id" value="@d.Id"/><button type="submit">Sync</button></form>
+    <form method="post" asp-page-handler="Reindex" style="display:inline"><input type="hidden" name="id" value="@d.Id"/><button type="submit">Index</button></form>
+    <form method="post" asp-page-handler="ClearChunks" style="display:inline"><input type="hidden" name="id" value="@d.Id"/><button type="submit">Clear chunks</button></form>
+    <form method="post" asp-page-handler="Delete" style="display:inline"><input type="hidden" name="id" value="@d.Id"/><button type="submit">حذف</button></form>
+  </td>
+</tr>
+}
+</tbody></table></div>

@@ -1,0 +1,171 @@
+# Knowledge RAG Engine — full stack
+# cd docker && docker compose up -d --build
+name: knowledge-rag
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-knowledgeos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-knowledgeos}
+      POSTGRES_DB: ${POSTGRES_DB:-knowledgeos}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-knowledgeos} -d ${POSTGRES_DB:-knowledgeos}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [rag-net]
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.1
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks: [rag-net]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [rag-net]
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-knowledgeos}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-knowledgeossecret}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    networks: [rag-net]
+
+  minio-init:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on: [minio]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 3
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER:-knowledgeos}" "$${MINIO_ROOT_PASSWORD:-knowledgeossecret}"
+        mc mb -p local/$${MINIO_BUCKET:-knowledgeos} || true
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-knowledgeos}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-knowledgeossecret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-knowledgeos}
+    networks: [rag-net]
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama-models:/root/.ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks: [rag-net]
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: ollama:11434
+      EMBED_MODEL: ${KNOWLEDGEOS_OLLAMA_EMBEDDING_MODEL:-all-minilm}
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["ollama pull \"$$EMBED_MODEL\""]
+    volumes:
+      - ollama-models:/root/.ollama
+    networks: [rag-net]
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      KNOWLEDGEOS_DATA_DIR: /data
+      KNOWLEDGEOS_POSTGRES_URL: postgresql://${POSTGRES_USER:-knowledgeos}:${POSTGRES_PASSWORD:-knowledgeos}@postgres:5432/${POSTGRES_DB:-knowledgeos}
+      KNOWLEDGEOS_METADATA_BACKEND: postgres
+      KNOWLEDGEOS_VECTOR_BACKEND: ${KNOWLEDGEOS_VECTOR_BACKEND:-qdrant}
+      KNOWLEDGEOS_QDRANT_URL: http://qdrant:6333
+      KNOWLEDGEOS_QDRANT_COLLECTION: ${KNOWLEDGEOS_QDRANT_COLLECTION:-knowledge_chunks}
+      KNOWLEDGEOS_REDIS_URL: redis://redis:6379/0
+      KNOWLEDGEOS_OBJECT_STORE: ${KNOWLEDGEOS_OBJECT_STORE:-local}
+      KNOWLEDGEOS_MINIO_ENDPOINT: minio:9000
+      KNOWLEDGEOS_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-knowledgeos}
+      KNOWLEDGEOS_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-knowledgeossecret}
+      KNOWLEDGEOS_MINIO_BUCKET: ${MINIO_BUCKET:-knowledgeos}
+      KNOWLEDGEOS_MINIO_SECURE: "false"
+      KNOWLEDGEOS_OLLAMA_BASE_URL: http://ollama:11434
+      KNOWLEDGEOS_OLLAMA_EMBEDDING_MODEL: ${KNOWLEDGEOS_OLLAMA_EMBEDDING_MODEL:-all-minilm}
+      KNOWLEDGEOS_ALLOW_HASH_EMBEDDING_FALLBACK: ${KNOWLEDGEOS_ALLOW_HASH_EMBEDDING_FALLBACK:-false}
+      KNOWLEDGEOS_ALLOW_ANONYMOUS: ${KNOWLEDGEOS_ALLOW_ANONYMOUS:-true}
+      KNOWLEDGEOS_CORS_ORIGINS: ${KNOWLEDGEOS_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:5180,http://127.0.0.1:5180}
+      KNOWLEDGEOS_MAX_UPLOAD_BYTES: ${KNOWLEDGEOS_MAX_UPLOAD_BYTES:-536870912}
+      KNOWLEDGEOS_WORKERS: ${KNOWLEDGEOS_WORKERS:-4}
+      KNOWLEDGEOS_ARCHIVE_REPORTS: "true"
+      KNOWLEDGEOS_AUTH_SECRET: ${KNOWLEDGEOS_AUTH_SECRET:-}
+      KNOWLEDGEOS_ENCRYPTION_KEY: ${KNOWLEDGEOS_ENCRYPTION_KEY:-}
+    volumes:
+      - knowledgeos-data:/data
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks: [rag-net]
+
+volumes:
+  knowledgeos-data:
+  postgres-data:
+  qdrant-data:
+  redis-data:
+  minio-data:
+  ollama-models:
+
+networks:
+  rag-net:
+    driver: bridge

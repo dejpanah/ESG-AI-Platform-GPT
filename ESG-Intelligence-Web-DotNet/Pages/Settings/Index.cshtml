@@ -1,0 +1,6 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.Settings.IndexModel
+@{ ViewData["Title"] = "Settings"; }
+<h1>Settings</h1>
+@if(Model.Error!=null){<div class="alert">@Model.Error</div>}
+<pre style="white-space:pre-wrap;background:#0b1220;padding:1rem;border-radius:8px">@Model.Payload</pre>

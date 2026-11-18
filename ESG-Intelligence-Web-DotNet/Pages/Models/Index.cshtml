@@ -1,0 +1,36 @@
+@page
+@model EnterpriseKnowledge.WebUI.Pages.Models.IndexModel
+@{ ViewData["Title"] = "مدل‌ها"; }
+@if(Model.Error!=null){<div class="alert">@Model.Error</div>}
+<div class="card">
+<h2>افزودن Provider</h2>
+<form method="post" asp-page-handler="Create">
+<label>نام</label><input asp-for="Name" required/>
+<label>Kind</label><input asp-for="Kind"/>
+<label>Base URL</label><input asp-for="BaseUrl"/>
+<label>Model</label><input asp-for="ModelName" required/>
+<label>Role</label>
+<select asp-for="Role"><option>Generation</option><option>Embeddings</option><option>Both</option></select>
+<label>API Key</label><input asp-for="ApiKey" type="password"/>
+<button class="btn" type="submit">ذخیره</button>
+</form>
+</div>
+<div class="card"><h2>Providers</h2>
+<table><thead><tr><th>نام</th><th>Model</th><th>Role</th><th></th></tr></thead>
+<tbody>
+@foreach(var p in Model.Providers){
+<tr>
+<td>@p.Name<br/><small>@p.BaseUrl</small></td>
+<td>@p.Model</td><td>@p.Role</td>
+<td>
+<form method="post" asp-page-handler="Test" style="display:inline"><input type="hidden" name="id" value="@p.Id"/><button type="submit">Test</button></form>
+<form method="post" asp-page-handler="Toggle" style="display:inline"><input type="hidden" name="id" value="@p.Id"/><input type="hidden" name="enabled" value="@(p.Enabled?"false":"true")"/><button type="submit">@(p.Enabled?"Disable":"Enable")</button></form>
+<form method="post" asp-page-handler="Delete" style="display:inline"><input type="hidden" name="id" value="@p.Id"/><button type="submit">حذف</button></form>
+</td>
+</tr>
+}
+</tbody></table>
+@if(Model.OpenAIModels.Count>0){
+<p><strong>/v1/models:</strong> @string.Join(", ", Model.OpenAIModels)</p>
+}
+</div>

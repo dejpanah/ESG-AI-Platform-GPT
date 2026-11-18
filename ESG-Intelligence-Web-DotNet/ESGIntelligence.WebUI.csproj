@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ESGIntelligence.WebUI</RootNamespace>
+    <AssemblyName>ESGIntelligence.WebUI</AssemblyName>
+  </PropertyGroup>
+</Project>
